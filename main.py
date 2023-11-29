@@ -38,7 +38,7 @@ class Data:
         M = self.getM()
         return sum([(M-val)**2 for val in self.data])/len(self.data)
     
-    def drawGistByISS(self, ISS: dict):
+    def drawGistByISS(self, ISS: dict, xLabel=None, yLabel=None, title=None, label=None):
         X, Y = reformingSSToXY(ISS).values()
         
         delta = X[0][1]-X[0][0]
@@ -47,6 +47,10 @@ class Data:
         
         plt.delaxes()
         plt.bar(X, Y)
+        plt.xlabel(xLabel)
+        plt.ylabel(yLabel)
+        plt.title(title)
+        plt.legend()
         
         return plt
         
@@ -90,8 +94,14 @@ if __name__ == "__main__":
     
     # 3
     
-    plt = data.drawGistByISS(ISS)
-    # plt.show()
+    plt = data.drawGistByISS(
+        ISS,
+        xLabel="результат измерения, см.",
+        yLabel="кол-во участников",
+        label="обхват грудной клетки",
+        title="Вариант. 5, Результаты измерения обхвата грудной клетки 120 женщин"
+        )
+    plt.show()
     
     # 4
     
