@@ -6,25 +6,31 @@ import numpy as np
 
 class Data:
     def __init__(self, dataFileName="data.txt") -> None:
+        self.TYPE = "int"
         self.loadFromFile(dataFileName)  # self.data - вариационный ряд
         self.N = len(self.data)
         
     def loadFromFile(self, dataFileName):
         with open(dataFileName, "r") as file:
-            self.data = sorted(map(int, file.read().split()))
+            match self.TYPE:
+                case "int":
+                    self.data = sorted(map(int, file.read().split()))
+                case "float":
+                    self.data = sorted([x[0]+x[1]/100 for x in map(lambda i: list(map(int, i.split("."))), file.read().split())])
             
     def getSS(self) -> dict:  # статистический ряд
-        res = dict.fromkeys(range(self.data[0], self.data[-1]), 0)
-        
+        res = dict()
         for item in self.data:
             res[item] = res.get(item, 0) + 1
         return res
     
-    def getISS(self, delta: int) -> dict:  # интервальный статистический ряд
+    def getISS(self, interval_count: int) -> dict:  # интервальный статистический ряд
+        delta = self.__getDelta(interval_count)
         def getKey(item) -> tuple:
             return (item-(item-self.data[0])%delta, item-(item-self.data[0])%delta+delta)
         
-        res = dict.fromkeys([getKey(item) for item in range(self.data[0], self.data[-1], delta)], 0)
+        # res = dict.fromkeys([getKey(item) for item in range(self.data[0], self.data[-1], delta)], 0)
+        res=dict()
             
         for item in self.data:
             key = getKey(item)
@@ -53,6 +59,13 @@ class Data:
         plt.legend()
         
         return plt
+    
+    def __getDelta(self, interval_count: int):
+        match self.TYPE:
+            case "int":
+                return ceil((data.data[-1] - data.data[0] + 1)/interval_count)
+            case "float":
+                return ceil((data.data[-1]*100 - data.data[0]*100 + 1)/interval_count)/100
         
         
 def reformingSSToXY(result : dict) -> dict:
@@ -77,11 +90,11 @@ if __name__ == "__main__":
     data = Data()
     
     # 1
-    interval_count = 7
-    delta = ceil((data.data[-1] - data.data[0] + 1)/interval_count)
+    interval_count = 30
+    
     
     SS = data.getSS()
-    ISS = data.getISS(delta)
+    ISS = data.getISS(interval_count)
     pprint(SS)
     pprint(ISS)
         
@@ -111,6 +124,6 @@ if __name__ == "__main__":
     x = np.linspace(-1,interval_count,70)
     pdf = normal_dist(x)
     plt.plot(x,pdf , color = 'red')
-    plt.show()
+    # plt.show()
     
     print("нормальное распределение")
