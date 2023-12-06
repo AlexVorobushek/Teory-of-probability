@@ -1,31 +1,36 @@
 import matplotlib.pyplot as plt
+from pprint import pprint
+from math import ceil
+import numpy as np
 
 
 class Data:
     def __init__(self, dataFileName="data.txt") -> None:
-        self.loadFromFile(dataFileName)
+        self.TYPE = "int"
+        self.loadFromFile(dataFileName)  # self.data - вариационный ряд
+        self.N = len(self.data)
         
     def loadFromFile(self, dataFileName):
         with open(dataFileName, "r") as file:
-            self.data = list(map(int, file.read().split()))
+            match self.TYPE:
+                case "int":
+                    self.data = sorted(map(int, file.read().split()))
+                case "float":
+                    self.data = sorted([x[0]+x[1]/100 for x in map(lambda i: list(map(int, i.split("."))), file.read().split())])
             
-    def getSS(self, showNoneData = True) -> dict:  # статистический ряд
+    def getSS(self) -> dict:  # статистический ряд
         res = dict()
-        
-        if showNoneData:
-            res = dict.fromkeys(range(min(self.data), max(self.data)), 0)
-        
         for item in self.data:
             res[item] = res.get(item, 0) + 1
         return res
     
-    def getISS(self, interval: int, showNoneData = True) -> dict:  # интервальный статистический ряд
+    def getISS(self, interval_count: int) -> dict:  # интервальный статистический ряд
+        delta = self.__getDelta(interval_count)
         def getKey(item) -> tuple:
-            return (item-item%interval, item-item%interval+interval)
+            return (item-(item-self.data[0])%delta, item-(item-self.data[0])%delta+delta)
         
-        res = dict()
-        if showNoneData:
-            res = dict.fromkeys([getKey(item) for item in range(min(self.data), max(self.data), interval)], 0)
+        # res = dict.fromkeys([getKey(item) for item in range(self.data[0], self.data[-1], delta)], 0)
+        res=dict()
             
         for item in self.data:
             key = getKey(item)
@@ -38,12 +43,36 @@ class Data:
     def getD(self) -> float: # дисперсия
         M = self.getM()
         return sum([(M-val)**2 for val in self.data])/len(self.data)
+    
+    def drawGistByISS(self, ISS: dict, xLabel=None, yLabel=None, title=None, label=None):
+        X, Y = reformingSSToXY(ISS).values()
         
-def reformingResultToXY(result : dict) -> dict:
-        res = {"x": [], "y": []}
+        delta = X[0][1]-X[0][0]
+        X = list(map(str, X))
+        Y = list(map(lambda item: item/(self.N*delta), Y))
+        
+        plt.delaxes()
+        plt.bar(X, Y)
+        plt.xlabel(xLabel)
+        plt.ylabel(yLabel)
+        plt.title(title)
+        plt.legend()
+        
+        return plt
+    
+    def __getDelta(self, interval_count: int):
+        match self.TYPE:
+            case "int":
+                return ceil((data.data[-1] - data.data[0] + 1)/interval_count)
+            case "float":
+                return ceil((data.data[-1]*100 - data.data[0]*100 + 1)/interval_count)/100
+        
+        
+def reformingSSToXY(result : dict) -> dict:
+        res = {"X": [], "Y": []}
         for x, y in result.items():
-            res["x"].append(str(x))
-            res["y"].append(y)
+            res["X"].append(x)
+            res["Y"].append(y)
         return res
 
 
@@ -59,30 +88,42 @@ def draw(x : list, y : list, fileName : str, xLabel=None, yLabel=None, title=Non
 
 if __name__ == "__main__":
     data = Data()
-    interval = 5
-    # 1
-    print(SS:=data.getSS())
-    print(ISS:=data.getISS(interval))
-    # 2
-    print(f"математическое ожидание - {data.getM()}")
-    print(f"дисперсия - {data.getD()}")
-    # 3
-    draw(
-        **reformingResultToXY(SS),
-        fileName="gist.png",
-        xLabel="результат измерения, см.",
-        yLabel="кол-во участников",
-        label="обхват грудной клетки",
-        title="В. 5, Результаты измерения обхвата грудной клетки 120 женщин"
-        )
     
-    draw(
-        **reformingResultToXY(ISS),
-        fileName="interval_gist.png",
+    # 1
+    interval_count = 30
+    
+    
+    SS = data.getSS()
+    ISS = data.getISS(interval_count)
+    pprint(SS)
+    pprint(ISS)
+        
+    # 2
+    
+    M = data.getM()
+    D = data.getD()
+    print(f"{M=}")
+    print(f"{D=}")
+    
+    # 3
+    
+    plt = data.drawGistByISS(
+        ISS,
         xLabel="результат измерения, см.",
         yLabel="кол-во участников",
         label="обхват грудной клетки",
-        title="В. 5, Результаты измерения обхвата грудной клетки 120 женщин"
+        title="Вариант. 5, Результаты измерения обхвата грудной клетки 120 женщин"
         )
+    plt.show()
+    
     # 4
+    
+    def normal_dist(x, mean = 2.1, sd=1.5):
+        prob_density = (np.pi*sd) * np.exp(-0.5*((x-mean)/sd)**2)
+        return prob_density/50
+    x = np.linspace(-1,interval_count,70)
+    pdf = normal_dist(x)
+    plt.plot(x,pdf , color = 'red')
+    # plt.show()
+    
     print("нормальное распределение")
